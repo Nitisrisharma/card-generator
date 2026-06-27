@@ -9,9 +9,19 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 
+// const ai = new GoogleGenAI({ 
+//   apiKey: process.env.GEMINI_API_KEY 
+// });
+
 const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY 
+  apiKey: process.env.GEMINI_API_KEY || "" 
 });
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+}
+if (process.env.GOOGLE_CLOUD_PROJECT) {
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+}
 
 app.use(cors());
 app.use(express.json());
@@ -56,7 +66,7 @@ app.get('/api/generate-text', async (req, res) => {
         // Engineering the prompt for a premium card feel
         const userPrompt = `Write a short, heartfelt, and elegant greeting message for a greeting card celebrating ${festival}. It should be maximum 2-3 lines long, professional yet warm, and ready to print. Do not include any subject lines, quotes, or placeholders. Just return the clean text message.`;
 
-        // Calling the Gemini 2.5 Flash model
+        
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: userPrompt,
