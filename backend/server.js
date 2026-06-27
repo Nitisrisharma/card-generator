@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000; // Render uses port 10000
 
 app.use(cors());
 app.use(express.json());
@@ -22,7 +22,7 @@ const themePrompts = {
     invitation: 'Premium luxury dark royal card background with intricate golden patterns'
 };
 
-
+// 1. ENDPOINT FOR GENERATING AI BACKGROUND IMAGES
 app.get('/api/generate-bg', (req, res) => {
     const festival = req.query.festival;
     if (!themePrompts[festival]) {
@@ -38,7 +38,7 @@ app.get('/api/generate-bg', (req, res) => {
     res.json({ imageUrl: aiImageUrl });
 });
 
-// 2. NEW ENDPOINT: GENERATE FESTIVE TEXT USING DIRECT API FETCH (NO SDK ERROR!)
+// 2. ENDPOINT: GENERATE FESTIVE TEXT USING DIRECT NATIVE FETCH
 app.get('/api/generate-text', async (req, res) => {
     const festival = req.query.festival;
     
@@ -46,15 +46,15 @@ app.get('/api/generate-text', async (req, res) => {
         return res.status(400).json({ error: 'Festival parameter is required' });
     }
 
-    const apiKey = AQ.Ab8RN6Ig6xDIcQIQr0kZoQaLvkAI8fGZHNU8vVodImMuz5_Kf;
+    // Render dashboard ensures GEMINI_API_KEY is available globally
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        return res.status(500).json({ error: 'GEMINI_API_KEY is missing in environment variables' });
+        return res.status(500).json({ error: 'GEMINI_API_KEY is missing in backend environment variables' });
     }
 
     try {
         const userPrompt = `Write a short, heartfelt, and elegant greeting message for a greeting card celebrating ${festival}. It should be maximum 2-3 lines long, professional yet warm, and ready to print. Do not include any subject lines, quotes, or placeholders. Just return the clean text message.`;
 
-        // Direct API Call using native fetch (Bypasses Google Cloud Credentials completely)
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         
         const response = await fetch(url, {
@@ -79,11 +79,11 @@ app.get('/api/generate-text', async (req, res) => {
         res.json({ text: generatedText });
 
     } catch (error) {
-        console.error("Gemini Error:", error);
+        console.error("Gemini Route Error:", error);
         res.status(500).json({ error: error.message || 'Failed to generate text via Gemini API' });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 });
