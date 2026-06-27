@@ -22,7 +22,7 @@ const themePrompts = {
     invitation: 'Premium luxury dark royal card background with intricate golden patterns'
 };
 
-// 1. ENDPOINT FOR GENERATING AI BACKGROUND IMAGES
+
 app.get('/api/generate-bg', (req, res) => {
     const festival = req.query.festival;
     if (!themePrompts[festival]) {
@@ -46,7 +46,7 @@ app.get('/api/generate-text', async (req, res) => {
         return res.status(400).json({ error: 'Festival parameter is required' });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = AQ.Ab8RN6Ig6xDIcQIQr0kZoQaLvkAI8fGZHNU8vVodImMuz5_Kf;
     if (!apiKey) {
         return res.status(500).json({ error: 'GEMINI_API_KEY is missing in environment variables' });
     }
