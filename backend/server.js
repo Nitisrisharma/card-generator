@@ -1,30 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { GoogleGenAI } from '@google/genai';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-
-// const ai = new GoogleGenAI({ 
-//   apiKey: process.env.GEMINI_API_KEY 
-// });
-
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || "" 
-});
-if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
-}
-if (process.env.GOOGLE_CLOUD_PROJECT) {
-    delete process.env.GOOGLE_CLOUD_PROJECT;
-}
-
 app.use(cors());
 app.use(express.json());
+
 const themePrompts = {
     republic: 'Indian Republic day celebrations, subtle tricolor smoke in the sky, minimalist background, 8k',
     independence: 'Red Fort in Delhi with an Indian flag, soft cinematic lighting, bokeh background',
@@ -48,13 +33,12 @@ app.get('/api/generate-bg', (req, res) => {
     const randomSeed = Math.floor(Math.random() * 100000);
     const encodedPrompt = encodeURIComponent(promptText);
     
-    // Using Pollinations for instant front-end rendering
     const aiImageUrl = `https://image.pollinations.ai/p/${encodedPrompt}?width=1280&height=1280&seed=${randomSeed}&nologo=true`;
 
     res.json({ imageUrl: aiImageUrl });
 });
 
-// 2. NEW ENDPOINT: GENERATE FESTIVE TEXT USING GEMINI
+// 2. NEW ENDPOINT: GENERATE FESTIVE TEXT USING DIRECT API FETCH (NO SDK ERROR!)
 app.get('/api/generate-text', async (req, res) => {
     const festival = req.query.festival;
     
@@ -62,22 +46,41 @@ app.get('/api/generate-text', async (req, res) => {
         return res.status(400).json({ error: 'Festival parameter is required' });
     }
 
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY is missing in environment variables' });
+    }
+
     try {
-        // Engineering the prompt for a premium card feel
         const userPrompt = `Write a short, heartfelt, and elegant greeting message for a greeting card celebrating ${festival}. It should be maximum 2-3 lines long, professional yet warm, and ready to print. Do not include any subject lines, quotes, or placeholders. Just return the clean text message.`;
 
+        // Direct API Call using native fetch (Bypasses Google Cloud Credentials completely)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: userPrompt,
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: userPrompt }]
+                }]
+            })
         });
 
-        const generatedText = response.text.trim();
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error?.message || 'Failed to fetch from Gemini API');
+        }
+
+        const generatedText = data.candidates[0].content.parts[0].text.trim();
         res.json({ text: generatedText });
 
     } catch (error) {
         console.error("Gemini Error:", error);
-        res.status(500).json({ error: 'Failed to generate text via Gemini API' });
+        res.status(500).json({ error: error.message || 'Failed to generate text via Gemini API' });
     }
 });
 
