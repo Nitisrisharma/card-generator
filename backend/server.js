@@ -47,7 +47,7 @@ app.get('/api/generate-text', async (req, res) => {
     }
 
     // Render dashboard ensures GEMINI_API_KEY is available globally
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = "AQ.Ab8RN6I-u83YJgzH7ojeOwMNzF_mFnWNz3o32xjghUhFELUXYQ";
     if (!apiKey) {
         return res.status(500).json({ error: 'GEMINI_API_KEY is missing in backend environment variables' });
     }
