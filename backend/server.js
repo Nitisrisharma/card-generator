@@ -15,7 +15,6 @@ const ai = new GoogleGenAI({
 
 app.use(cors());
 app.use(express.json());
-
 const themePrompts = {
     republic: 'Indian Republic day celebrations, subtle tricolor smoke in the sky, minimalist background, 8k',
     independence: 'Red Fort in Delhi with an Indian flag, soft cinematic lighting, bokeh background',
