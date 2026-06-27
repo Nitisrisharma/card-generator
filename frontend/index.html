@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Festival & Event Card Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Great+Vibes&family=Montserrat:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,400&family=Roboto&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --accent-color: #4a90e2;
+            --text-color: #333;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+        .tabs-container { 
+            background: #2c3e50; 
+            padding: 15px; 
+            display: flex; 
+            justify-content: flex-start; 
+            gap: 10px; 
+            z-index: 10; 
+            overflow-x: auto;
+            white-space: nowrap;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .tabs-container::-webkit-scrollbar { display: none; }
+        .tabs-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .tab-btn { background: rgba(255, 255, 255, 0.1); color: #fff; border: 2px solid transparent; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; transition: all 0.3s ease; display: inline-block; }
+        .tab-btn.active, .tab-btn:hover { background: #fff; color: #2c3e50; border-color: var(--accent-color); }
+
+        .app-body { display: flex; flex: 1; overflow: hidden; }
+        .control-panel { width: 35%; background: var(--panel-bg); padding: 25px; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 15px; }
+        .control-panel h2 { font-size: 1.4rem; margin-bottom: 5px; }
+
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-weight: bold; font-size: 0.85rem; color: #555; }
+
+        input[type="text"], textarea, select, input[type="file"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
+        textarea { resize: vertical; height: 85px; }
+
+        .ai-text-btn { background: #8e44ad; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: pointer; margin-top: 5px; align-self: flex-start; transition: background 0.2s; }
+        .ai-text-btn:hover { background: #732d91; }
+
+        .char-count { font-size: 0.8rem; color: #888; text-align: right; margin-top: -3px; }
+        .image-preview-block { margin-top: 5px; font-size: 0.8rem; color: #666; font-style: italic; }
+
+        .btn-container { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; padding-bottom: 20px; }
+        .btn-row { display: flex; gap: 10px; }
+
+        button.action-btn { flex: 1; padding: 12px; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        #random-bg-btn { background: #e67e22; color: white; }
+        #random-bg-btn:hover { background: #d35400; }
+        #publish-btn { background: #27ae60; color: white; }
+        #publish-btn:hover { background: #219653; }
+        #download-btn { background: #2980b9; color: white; }
+        #download-btn:hover { background: #2471a3; }
+
+        
+        .preview-panel { width: 65%; display: flex; align-items: center; justify-content: center; padding: 30px; background: #e0e0e0; overflow: auto; position: relative; }
+        .canvas-container { width: 100%; max-width: 700px; aspect-ratio: 1 / 1; box-shadow: 0 10px 25px rgba(0,0,0,0.2); background: #fff; position: relative; }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        /* Smooth CSS Loader Overlay styling */
+        .canvas-loader {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.65);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            gap: 15px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 5;
+        }
+        .canvas-container.loading .canvas-loader { opacity: 1; pointer-events: auto; }
+        
+        .spinner {
+            width: 50px; height: 50px;
+            border: 6px solid rgba(255, 255, 255, 0.3);
+            border-top: 6px solid #4a90e2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchFestival('republic', this)">Republic Day</button>
+        <button class="tab-btn" onclick="switchFestival('independence', this)">Independence Day</button>
+        <button class="tab-btn" onclick="switchFestival('gandhi', this)">Gandhi Jayanti</button>
+        <button class="tab-btn" onclick="switchFestival('diwali', this)">Diwali</button>
+        <button class="tab-btn" onclick="switchFestival('holi', this)">Holi</button>
+        <button class="tab-btn" onclick="switchFestival('eid', this)">Eid-ul-Fitr</button>
+        <button class="tab-btn" onclick="switchFestival('christmas', this)">Christmas</button>
+        <button class="tab-btn" onclick="switchFestival('birthday', this)">Birthday</button>
+        <button class="tab-btn" onclick="switchFestival('invitation', this)">Invitation</button>
+    </div>
+
+    <div class="app-body">
+        <div class="control-panel">
+            <h2>Card Customization</h2>
+            <hr>
+
+            <div class="input-group">
+                <label for="font-select">Choose Card Font:</label>
+                <select id="font-select">
+                    <option value="'Playfair Display', serif">Playfair Display (Elegant)</option>
+                    <option value="'Great Vibes', cursive">Great Vibes (Calligraphy)</option>
+                    <option value="'Cinzel', serif">Cinzel (Classic/Royal)</option>
+                    <option value="'Montserrat', sans-serif">Montserrat (Modern)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="logo-input">Upload Header Logo (PNG is best):</label>
+                <input type="file" id="logo-input" accept="image/*" onchange="handleLogoUpload(this)">
+                <div id="logo-status" class="image-preview-block">Default logo active</div>
+            </div>
+
+            <div class="input-group">
+                <label for="header-input">Header Text (Max 100 characters):</label>
+                <input type="text" id="header-input" maxlength="100" placeholder="e.g., Happy Festive Season" oninput="updateCharCount()">
+                <div class="char-count"><span id="char-num">0</span>/100</div>
+            </div>
+
+            <div class="input-group">
+                <label for="image-input">Body Image (Above Main Text):</label>
+                <input type="file" id="image-input" accept="image/*" onchange="handleImageUpload(this)">
+                <div id="image-status" class="image-preview-block">No image selected</div>
+            </div>
+
+            <div class="input-group">
+                <label for="body-input">Main Body Content:</label>
+                <textarea id="body-input" placeholder="Write your primary wishes or greetings here..."></textarea>
+                <button class="ai-text-btn" onclick="generateTextWithAI()">Generate Text with AI ✨</button>
+            </div>
+
+            <div class="input-group">
+                <label for="lower-body-input">Lower Body Details:</label>
+                <input type="text" id="lower-body-input" placeholder="e.g., Date, Time, or Venue details">
+            </div>
+
+            <div class="input-group">
+                <label for="footer-input">Footer Text:</label>
+                <input type="text" id="footer-input" placeholder="e.g., Warm regards, The Tech Team">
+            </div>
+
+            <div class="btn-container">
+                <button id="random-bg-btn" class="action-btn" onclick="generateNewBackground()">Change Background Image ↻</button>
+                <div class="btn-row">
+                    <button id="publish-btn" class="action-btn" onclick="publishCard()">Publish to Card</button>
+                    <button id="download-btn" class="action-btn" onclick="downloadCard()">Download Card</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-panel">
+            <div class="canvas-container" id="canvasWrapper">
+                <div class="canvas-loader">
+                    <div class="spinner"></div>
+                    <div id="loader-text">AI is working...</div>
+                </div>
+                <canvas id="cardCanvas" width="1280" height="1280"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('cardCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWrapper = document.getElementById('canvasWrapper');
+        const loaderText = document.getElementById('loader-text');
+
+        let currentFestival = 'republic';
+        let userLoadedImage = null; 
+        let userLoadedLogo = null;
+        let currentLoadedBgImage = null; 
+        
+        const themeColors = {
+            republic: { text: '#ffffff', secondary: '#ff9933', logoColor: '#138808', overlay: 'rgba(5, 20, 35, 0.75)' },
+            independence: { text: '#ffffff', secondary: '#138808', logoColor: '#ff9933', overlay: 'rgba(5, 20, 35, 0.75)' },
+            gandhi: { text: '#ffffff', secondary: '#d4af37', logoColor: '#d4af37', overlay: 'rgba(54, 43, 32, 0.8)' },
+            diwali: { text: '#ffffff', secondary: '#f1c40f', logoColor: '#f1c40f', overlay: 'rgba(74, 14, 23, 0.75)' },
+            holi: { text: '#ffffff', secondary: '#e91e63', logoColor: '#00bcd4', overlay: 'rgba(20, 10, 35, 0.7)' },
+            eid: { text: '#ffffff', secondary: '#f1c40f', logoColor: '#f1c40f', overlay: 'rgba(15, 52, 67, 0.75)' },
+            christmas: { text: '#ffffff', secondary: '#f1c40f', logoColor: '#e74c3c', overlay: 'rgba(10, 61, 28, 0.8)' },
+            birthday: { text: '#ffffff', secondary: '#ffeb3b', logoColor: '#e91e63', overlay: 'rgba(50, 20, 60, 0.75)' },
+            invitation: { text: '#ffffff', secondary: '#d4af37', logoColor: '#d4af37', overlay: 'rgba(30, 30, 30, 0.8)' }
+        };
+
+        
+        function showLoader(message) {
+            loaderText.textContent = message;
+            canvasWrapper.classList.add('loading');
+        }
+        function hideLoader() {
+            canvasWrapper.classList.remove('loading');
+        }
+
+        
+        function generateNewBackground() {
+            showLoader("Dreaming up AI Image...");
+            const backendUrl = `http://localhost:5000/api/generate-bg?festival=${currentFestival}`;
+
+            fetch(backendUrl)
+                .then(response => {
+                    if (!response.ok) throw new Error("Server error");
+                    return response.json();
+                })
+                .then(data => {
+                    const img = new Image();
+                    img.crossOrigin = "anonymous"; 
+                    img.src = data.imageUrl;
+                    
+                    img.onload = () => {
+                        currentLoadedBgImage = img;
+                        publishCard(); 
+                        hideLoader(); 
+                    };
+                })
+                .catch(error => {
+                    console.error(error);
+                    
+                    const randomId = Math.floor(Math.random() * 10000);
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+                    img.src = `https://picsum.photos/1280/1280?random=${randomId}`;
+                    img.onload = () => {
+                        currentLoadedBgImage = img;
+                        publishCard();
+                        hideLoader();
+                    };
+                });
+        }
+
+        // CALLS GEMINI API TO GENERATE WISHES 
+        function generateTextWithAI() {
+            showLoader("Gemini is writing greetings...");
+            const backendUrl = `http://localhost:5000/api/generate-text?festival=${currentFestival}`;
+
+            fetch(backendUrl)
+                .then(response => {
+                    if (!response.ok) throw new Error("Text generation failed");
+                    return response.json();
+                })
+                .then(data => {
+                    
+                    document.getElementById('body-input').value = data.text;
+                    
+                    publishCard();
+                    hideLoader();
+                })
+                .catch(error => {
+                    console.error("Error fetching AI text:", error);
+                    alert("Could not connect to Node backend server. Please make sure your server is active.");
+                    hideLoader();
+                });
+        }
+
+        function updateCharCount() {
+            const len = document.getElementById('header-input').value.length;
+            document.getElementById('char-num').textContent = len;
+        }
+
+        function handleLogoUpload(input) {
+            const file = input.files[0];
+            const statusDiv = document.getElementById('logo-status');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        userLoadedLogo = img;
+                        statusDiv.textContent = `Logo loaded: ${file.name}`;
+                        statusDiv.style.color = "#27ae60";
+                        publishCard();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleImageUpload(input) {
+            const file = input.files[0];
+            const statusDiv = document.getElementById('image-status');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        userLoadedImage = img; 
+                        statusDiv.textContent = `Image loaded: ${file.name}`;
+                        statusDiv.style.color = "#27ae60";
+                        publishCard();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function switchFestival(festival, element) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            currentFestival = festival;
+            generateNewBackground(); 
+        }
+
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let currentY = y;
+
+            for (let n = 0; n < words.length; n++) {
+                let testLine = line + words[n] + ' ';
+                let metrics = context.measureText(testLine);
+                let testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, currentY);
+                    line = words[n] + ' ';
+                    currentY += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, currentY);
+            return currentY;
+        }
+
+        function publishCard() {
+            const fontChoice = document.getElementById('font-select').value;
+            const headerText = document.getElementById('header-input').value || `${currentFestival.toUpperCase()} GREETINGS`;
+            const bodyText = document.getElementById('body-input').value || "Customize this message using the input text area or let Gemini write it automatically via the button panel option.";
+            const lowerBodyText = document.getElementById('lower-body-input').value || "EVENT DETAILS / VENUE / DATE";
+            const footerText = document.getElementById('footer-input').value || "Best wishes from Your Name/Company";
+            
+            const colors = themeColors[currentFestival];
+            const bgImg = currentLoadedBgImage;
+
+            if (bgImg) {
+                ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = "#333";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            ctx.fillStyle = colors.overlay;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = colors.secondary;
+            ctx.lineWidth = 15;
+            ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+
+            const headerY = 130;
+            if (userLoadedLogo) {
+                const maxLogoSize = 80;
+                let logoWidth = userLoadedLogo.width;
+                let logoHeight = userLoadedLogo.height;
+                const logoRatio = Math.min(maxLogoSize / logoWidth, maxLogoSize / logoHeight);
+                logoWidth *= logoRatio;
+                logoHeight *= logoRatio;
+                ctx.drawImage(userLoadedLogo, 90, headerY - (logoHeight / 2) - 10, logoWidth, logoHeight);
+            } else {
+                ctx.fillStyle = colors.logoColor;
+                ctx.beginPath();
+                ctx.arc(130, headerY - 15, 30, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = "#000";
+                ctx.font = "bold 24px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("★", 130, headerY - 7);
+            }
+
+            ctx.fillStyle = colors.secondary;
+            ctx.font = `bold 42px ${fontChoice}`;
+            ctx.textAlign = "right";
+            wrapText(ctx, headerText, 1160, headerY, 800, 50);
+
+            let currentContentY = 250; 
+
+            if (userLoadedImage) {
+                const maxWidth = 800;
+                const maxHeight = 400;
+                let finalWidth = userLoadedImage.width;
+                let finalHeight = userLoadedImage.height;
+
+                const ratio = Math.min(maxWidth / finalWidth, maxHeight / finalHeight);
+                if (ratio < 1) {
+                    finalWidth = finalWidth * ratio;
+                    finalHeight = finalHeight * ratio;
+                }
+
+                const imgX = (canvas.width / 2) - (finalWidth / 2);
+                const imgY = currentContentY + 50;
+
+                ctx.drawImage(userLoadedImage, imgX, imgY, finalWidth, finalHeight);
+                currentContentY = imgY + finalHeight + 80; 
+            } else {
+                currentContentY = 550;
+            }
+
+            ctx.fillStyle = colors.text;
+            ctx.font = `48px ${fontChoice}`;
+            ctx.textAlign = "center";
+            wrapText(ctx, bodyText, canvas.width / 2, currentContentY, 900, 65);
+
+            ctx.fillStyle = colors.secondary;
+            ctx.font = `bold 36px ${fontChoice}`;
+            ctx.textAlign = "center";
+            wrapText(ctx, lowerBodyText, canvas.width / 2, 1000, 900, 50);
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+            ctx.font = `30px ${fontChoice}`;
+            ctx.textAlign = "center";
+            ctx.fillText(footerText, canvas.width / 2, 1180);
+        }
+
+        function downloadCard() {
+            const link = document.createElement('a');
+            link.download = `card-${currentFestival}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        window.onload = function() {
+            generateNewBackground();
+        };
+    </script>
+</body>
+</html>
