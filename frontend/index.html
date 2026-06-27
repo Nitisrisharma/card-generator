@@ -216,7 +216,7 @@
         
         function generateNewBackground() {
             showLoader("Dreaming up AI Image...");
-            const backendUrl = `http://localhost:5000/api/generate-bg?festival=${currentFestival}`;
+            const backendUrl = `https://card-generator-kgng.onrender.com/api/generate-bg?festival=${currentFestival}`;
 
             fetch(backendUrl)
                 .then(response => {
@@ -252,7 +252,7 @@
         // CALLS GEMINI API TO GENERATE WISHES 
         function generateTextWithAI() {
             showLoader("Gemini is writing greetings...");
-            const backendUrl = `http://localhost:5000/api/generate-text?festival=${currentFestival}`;
+            const backendUrl = `https://card-generator-kgng.onrender.com/api/generate-text?festival=${currentFestival}`;
 
             fetch(backendUrl)
                 .then(response => {
@@ -347,7 +347,7 @@
         function publishCard() {
             const fontChoice = document.getElementById('font-select').value;
             const headerText = document.getElementById('header-input').value || `${currentFestival.toUpperCase()} GREETINGS`;
-            const bodyText = document.getElementById('body-input').value || "Customize this message using the input text area or let Gemini write it automatically via the button panel option.";
+            const bodyText = document.getElementById('body-input').value || "Customize this message using the input text area or let AI write it automatically via the button panel option.";
             const lowerBodyText = document.getElementById('lower-body-input').value || "EVENT DETAILS / VENUE / DATE";
             const footerText = document.getElementById('footer-input').value || "Best wishes from Your Name/Company";
             
